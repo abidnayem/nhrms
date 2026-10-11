@@ -1,0 +1,40 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">People operations</p>
+    <h1>Employees</h1>
+  </div>
+  <button class="primary-button">Add employee</button>
+</header>
+
+<section class="summary-grid">
+  <article class="summary-card" *ngFor="let item of summary">
+    <span>{{ item.label }}</span>
+    <strong>{{ item.value }}</strong>
+  </article>
+</section>
+
+<section class="table-card">
+  <div class="table-header">
+    <h2>Roster</h2>
+    <button class="text-button">Export</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Department</th>
+        <th>Role</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let employee of employees">
+        <td>{{ employee.name }}</td>
+        <td>{{ employee.department }}</td>
+        <td>{{ employee.role }}</td>
+        <td><span class="status status-{{ employee.status.toLowerCase() }}">{{ employee.status }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

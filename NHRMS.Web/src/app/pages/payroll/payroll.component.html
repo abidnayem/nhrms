@@ -1,0 +1,25 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Finance operations</p>
+    <h1>Payroll</h1>
+  </div>
+  <button class="primary-button">Run payroll</button>
+</header>
+
+<section class="summary-grid">
+  <article class="summary-card" *ngFor="let item of summary">
+    <span>{{ item.label }}</span>
+    <strong>{{ item.value }}</strong>
+  </article>
+</section>
+
+<section class="cards-grid">
+  <article class="payroll-card" *ngFor="let cycle of cycles">
+    <div class="card-header">
+      <h2>{{ cycle.name }}</h2>
+      <span class="status status-{{ cycle.status.toLowerCase().replace(' ', '-') }}">{{ cycle.status }}</span>
+    </div>
+    <p>Total disbursed</p>
+    <strong>{{ cycle.amount }}</strong>
+  </article>
+</section>

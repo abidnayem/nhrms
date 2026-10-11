@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="NHRMS.Api/NHRMS.Api.csproj" />
+  <Project Path="NHRMS.Application/NHRMS.Application.csproj" />
+  <Project Path="NHRMS.Domain/NHRMS.Domain.csproj" />
+  <Project Path="NHRMS.Infrastructure/NHRMS.Infrastructure.csproj" />
+  <Project Path="NHRMS.Tests/NHRMS.Tests.csproj" />
+</Solution>

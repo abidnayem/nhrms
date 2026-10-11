@@ -1,0 +1,64 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Human resources dashboard</p>
+    <h1>Operations overview</h1>
+  </div>
+  <button class="primary-button">Create request</button>
+</header>
+
+<section class="metrics-grid">
+  <article class="metric-card" *ngFor="let metric of metrics">
+    <div class="metric-header">
+      <span class="metric-label">{{ metric.label }}</span>
+      <span class="badge badge-{{ metric.tone }}">{{ metric.delta }}</span>
+    </div>
+    <div class="metric-value">{{ metric.value }}</div>
+  </article>
+</section>
+
+<section class="quick-actions">
+  <h2>Quick actions</h2>
+  <div class="chip-row">
+    <button class="chip" *ngFor="let action of actions">{{ action }}</button>
+  </div>
+</section>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-header">
+      <h3>Active users</h3>
+      <button class="text-button">View all</button>
+    </div>
+
+    <div class="user-list">
+      <div class="user-row" *ngFor="let user of users">
+        <div class="user-identity">
+          <div class="avatar">{{ user.name.charAt(0) }}</div>
+          <div>
+            <strong>{{ user.name }}</strong>
+            <small>{{ user.email }}</small>
+          </div>
+        </div>
+        <span class="user-role">{{ user.role }}</span>
+        <span class="status status-{{ user.status.toLowerCase() }}">{{ user.status }}</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-header">
+      <h3>Role access</h3>
+      <button class="text-button">Manage</button>
+    </div>
+
+    <div class="role-list">
+      <div class="role-card" *ngFor="let role of roles">
+        <div class="role-name-row">
+          <strong>{{ role.name }}</strong>
+          <span>{{ role.members }} members</span>
+        </div>
+        <p>{{ role.description }}</p>
+      </div>
+    </div>
+  </article>
+</section>

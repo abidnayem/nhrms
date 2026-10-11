@@ -1,0 +1,28 @@
+<main class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">N</div>
+      <div>
+        <div class="brand-name">NHRMS</div>
+        <div class="brand-subtitle">Smart HR Platform</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <span class="nav-label">Workspace</span>
+      <a
+        *ngFor="let item of navItems"
+        class="nav-item"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        {{ item.label }}
+      </a>
+    </nav>
+  </aside>
+
+  <main class="content-panel">
+    <router-outlet />
+  </main>
+</main>

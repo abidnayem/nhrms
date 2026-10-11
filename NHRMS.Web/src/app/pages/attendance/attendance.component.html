@@ -1,0 +1,38 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Time tracking</p>
+    <h1>Attendance</h1>
+  </div>
+  <button class="primary-button">Sync punches</button>
+</header>
+
+<section class="stats-grid">
+  <article class="stat-card" *ngFor="let item of stats">
+    <span>{{ item.label }}</span>
+    <strong>{{ item.value }}</strong>
+  </article>
+</section>
+
+<section class="table-card">
+  <div class="table-header">
+    <h2>Today</h2>
+    <button class="text-button">Filter</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Check-in</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let log of logs">
+        <td>{{ log.employee }}</td>
+        <td>{{ log.time }}</td>
+        <td><span class="status status-{{ log.status === 'Late' ? 'late' : 'on-time' }}">{{ log.status }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

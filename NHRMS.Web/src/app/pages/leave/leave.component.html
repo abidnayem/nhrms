@@ -1,0 +1,40 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Absence management</p>
+    <h1>Leave</h1>
+  </div>
+  <button class="primary-button">Review requests</button>
+</header>
+
+<section class="summary-grid">
+  <article class="summary-card" *ngFor="let item of summary">
+    <span>{{ item.label }}</span>
+    <strong>{{ item.value }}</strong>
+  </article>
+</section>
+
+<section class="table-card">
+  <div class="table-header">
+    <h2>Recent requests</h2>
+    <button class="text-button">Export</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Leave type</th>
+        <th>Days</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let request of requests">
+        <td>{{ request.employee }}</td>
+        <td>{{ request.type }}</td>
+        <td>{{ request.days }}</td>
+        <td><span class="status status-{{ request.status.toLowerCase() }}">{{ request.status }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

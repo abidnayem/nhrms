@@ -1,0 +1,19 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Security</p>
+    <h1>Role access</h1>
+  </div>
+  <button class="primary-button">Add role</button>
+</header>
+
+<section class="role-grid">
+  <article class="role-card" *ngFor="let role of roles">
+    <div class="role-top">
+      <h2>{{ role.name }}</h2>
+      <span>{{ role.members }} members</span>
+    </div>
+    <ul>
+      <li *ngFor="let permission of role.permissions">{{ permission }}</li>
+    </ul>
+  </article>
+</section>
