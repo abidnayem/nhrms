@@ -1,6 +1,30 @@
-@NHRMS.Api_HostAddress = http://localhost:5209
+@baseUrl = http://localhost:5209
+@leaveRequestId = 00000000-0000-0000-0000-000000000000
 
-GET {{NHRMS.Api_HostAddress}}/weatherforecast/
+### Confirm API availability
+GET {{baseUrl}}/health
 Accept: application/json
 
-###
+### List employees
+GET {{baseUrl}}/api/employees
+Accept: application/json
+
+### Create an employee
+POST {{baseUrl}}/api/employees
+Content-Type: application/json
+
+{
+  "companyId": "00000000-0000-0000-0000-000000000000",
+  "firstName": "Example",
+  "lastName": "Employee",
+  "email": "employee@example.com",
+  "dateOfJoining": "2026-01-01"
+}
+
+### Approve a pending leave request
+PUT {{baseUrl}}/api/leaverequests/{{leaveRequestId}}/status
+Content-Type: application/json
+
+{
+  "status": "Approved"
+}

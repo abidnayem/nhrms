@@ -70,6 +70,7 @@ public interface IPayslipRepository : IRepository<Payslip>
 public interface IEmployeeRepository : IRepository<Employee>
 {
     Task<Employee?> GetByEmployeeCodeAsync(string employeeCode, CancellationToken cancellationToken = default);
+    Task<long> GetNextEmployeeCodeNumberAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IUserAccountRepository : IRepository<UserAccount>

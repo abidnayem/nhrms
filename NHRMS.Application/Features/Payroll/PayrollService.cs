@@ -37,6 +37,9 @@ public sealed class PayrollCycleService
         if (request.PeriodStart >= request.PeriodEnd)
             throw new ArgumentException("Period end must be later than period start.");
 
+        if (request.TotalGross < 0 || request.TotalDeductions < 0 || request.TotalDeductions > request.TotalGross)
+            throw new ArgumentException("Payroll amounts must be non-negative and deductions cannot exceed gross pay.");
+
         var net = request.TotalGross - request.TotalDeductions;
 
         var cycle = new PayrollCycle

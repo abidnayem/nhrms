@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using NHRMS.Application.Abstractions;
 using NHRMS.Domain;
 
@@ -31,6 +32,10 @@ public class NhrmsDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.HasSequence<long>("EmployeeCodeSequence")
+            .StartsAt(1)
+            .IncrementsBy(1);
+
         modelBuilder.Entity<Company>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -39,25 +44,27 @@ public class NhrmsDbContext : DbContext
             entity.HasIndex(x => x.Code).IsUnique();
             entity.HasIndex(x => x.Name);
 
+            // All entities use soft deletion, so database cascades are unnecessary and can
+            // produce unsupported multiple cascade paths in SQL Server.
             entity.HasMany(x => x.Branches)
                 .WithOne(x => x.Company)
                 .HasForeignKey(x => x.CompanyId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasMany(x => x.Departments)
                 .WithOne(x => x.Company)
                 .HasForeignKey(x => x.CompanyId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasMany(x => x.Designations)
                 .WithOne(x => x.Company)
                 .HasForeignKey(x => x.CompanyId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasMany(x => x.Employees)
                 .WithOne(x => x.Company)
                 .HasForeignKey(x => x.CompanyId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<Branch>(entity =>
@@ -66,7 +73,7 @@ public class NhrmsDbContext : DbContext
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
             entity.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
-            entity.HasMany(x => x.Departments).WithOne(x => x.Branch).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasMany(x => x.Departments).WithOne(x => x.Branch).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<Department>(entity =>
@@ -75,7 +82,7 @@ public class NhrmsDbContext : DbContext
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
             entity.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
-            entity.HasMany(x => x.ChildDepartments).WithOne(x => x.ParentDepartment).HasForeignKey(x => x.ParentDepartmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(x => x.ChildDepartments).WithOne(x => x.ParentDepartment).HasForeignKey(x => x.ParentDepartmentId).OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<Designation>(entity =>
@@ -106,17 +113,17 @@ public class NhrmsDbContext : DbContext
             entity.HasOne(x => x.Department)
                 .WithMany(x => x.Employees)
                 .HasForeignKey(x => x.DepartmentId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(x => x.Designation)
                 .WithMany(x => x.Employees)
                 .HasForeignKey(x => x.DesignationId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(x => x.EmploymentType)
                 .WithMany(x => x.Employees)
                 .HasForeignKey(x => x.EmploymentTypeId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -129,7 +136,7 @@ public class NhrmsDbContext : DbContext
             entity.HasMany(x => x.Permissions)
                 .WithOne(x => x.Role)
                 .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<Permission>(entity =>
@@ -143,11 +150,12 @@ public class NhrmsDbContext : DbContext
         modelBuilder.Entity<Attendance>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.HoursWorked).HasPrecision(6, 2);
             entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
             entity.HasOne(x => x.Employee)
                 .WithMany()
                 .HasForeignKey(x => x.EmployeeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<LeaveType>(entity =>
@@ -156,10 +164,14 @@ public class NhrmsDbContext : DbContext
             entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
             entity.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
+            entity.HasOne(x => x.Company)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.NoAction);
             entity.HasMany(x => x.LeaveRequests)
                 .WithOne(x => x.LeaveType)
                 .HasForeignKey(x => x.LeaveTypeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<LeaveRequest>(entity =>
@@ -169,27 +181,37 @@ public class NhrmsDbContext : DbContext
             entity.HasOne(x => x.Employee)
                 .WithMany()
                 .HasForeignKey(x => x.EmployeeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<PayrollCycle>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.TotalGross).HasPrecision(18, 2);
+            entity.Property(x => x.TotalDeductions).HasPrecision(18, 2);
+            entity.Property(x => x.TotalNet).HasPrecision(18, 2);
             entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.HasOne(x => x.Company)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.NoAction);
             entity.HasMany(x => x.Payslips)
                 .WithOne(x => x.PayrollCycle)
                 .HasForeignKey(x => x.PayrollCycleId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<Payslip>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.GrossSalary).HasPrecision(18, 2);
+            entity.Property(x => x.Deductions).HasPrecision(18, 2);
+            entity.Property(x => x.NetSalary).HasPrecision(18, 2);
             entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
             entity.HasOne(x => x.Employee)
                 .WithMany()
                 .HasForeignKey(x => x.EmployeeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<UserAccount>(entity =>
@@ -205,12 +227,12 @@ public class NhrmsDbContext : DbContext
             entity.HasOne(x => x.Employee)
                 .WithMany()
                 .HasForeignKey(x => x.EmployeeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasMany(x => x.UserRoles)
                 .WithOne(x => x.User)
                 .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<UserRole>(entity =>
@@ -222,7 +244,7 @@ public class NhrmsDbContext : DbContext
             entity.HasOne(x => x.Role)
                 .WithMany()
                 .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }
@@ -431,6 +453,31 @@ public class EmployeeRepository : Repository<Employee>, IEmployeeRepository
         var normalizedCode = employeeCode.Trim();
         return await _dbContext.Employees
             .FirstOrDefaultAsync(x => x.EmployeeCode == normalizedCode && !x.IsDeleted, cancellationToken);
+    }
+
+    public async Task<long> GetNextEmployeeCodeNumberAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = _dbContext.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != System.Data.ConnectionState.Open;
+
+        if (shouldCloseConnection)
+            await connection.OpenAsync(cancellationToken);
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT NEXT VALUE FOR dbo.EmployeeCodeSequence";
+            if (_dbContext.Database.CurrentTransaction is { } transaction)
+                command.Transaction = transaction.GetDbTransaction();
+
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            return Convert.ToInt64(result);
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+                await connection.CloseAsync();
+        }
     }
 }
 

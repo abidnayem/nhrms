@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using NHRMS.Application.Features.Attendance;
 using NHRMS.Application.Features.Branches;
 using NHRMS.Application.Features.Companies;
@@ -9,11 +10,21 @@ using NHRMS.Application.Features.Leave;
 using NHRMS.Application.Features.Payroll;
 using NHRMS.Application.Features.Roles;
 using NHRMS.Application.Features.Users;
+using NHRMS.Api.Middleware;
 using NHRMS.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("NhrmsWeb", policy =>
+        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+});
 builder.Services.AddControllers();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
@@ -32,6 +43,13 @@ builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddScoped<UserAccountService>();
 
 var app = builder.Build();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<NHRMS.Infrastructure.Persistence.NhrmsDbContext>();
+    await db.Database.MigrateAsync();
+    await NHRMS.Infrastructure.Persistence.NhrmsDbSeeder.SeedAsync(db);
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -73,6 +91,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("NhrmsWeb");
+app.UseExceptionHandler();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", timestampUtc = DateTime.UtcNow }));
 app.MapControllers();
 

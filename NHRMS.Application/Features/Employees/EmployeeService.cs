@@ -40,17 +40,6 @@ public sealed class EmployeeService
             throw new InvalidOperationException("Company not found.");
         }
 
-        var employeeCode = request.EmployeeCode.Trim();
-        if (string.IsNullOrWhiteSpace(employeeCode))
-        {
-            throw new ArgumentException("Employee code is required.", nameof(request.EmployeeCode));
-        }
-
-        if (await _employeeRepository.GetByEmployeeCodeAsync(employeeCode, cancellationToken) is not null)
-        {
-            throw new InvalidOperationException($"Employee code '{employeeCode}' already exists.");
-        }
-
         var firstName = request.FirstName.Trim();
         var lastName = request.LastName.Trim();
 
@@ -67,7 +56,6 @@ public sealed class EmployeeService
         var employee = new Employee
         {
             CompanyId = company.Id,
-            EmployeeCode = employeeCode,
             FirstName = firstName,
             LastName = lastName,
             Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
@@ -80,6 +68,8 @@ public sealed class EmployeeService
             CreatedAtUtc = DateTime.UtcNow,
             CreatedBy = "system"
         };
+        var employeeCodeNumber = await _employeeRepository.GetNextEmployeeCodeNumberAsync(cancellationToken);
+        employee.EmployeeCode = $"EMP-{employeeCodeNumber:D6}";
 
         await _employeeRepository.AddAsync(employee, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -92,6 +82,8 @@ public sealed class EmployeeService
         {
             Id = employee.Id,
             CompanyId = employee.CompanyId,
+            DepartmentId = employee.DepartmentId,
+            DesignationId = employee.DesignationId,
             EmployeeCode = employee.EmployeeCode,
             FirstName = employee.FirstName,
             LastName = employee.LastName,

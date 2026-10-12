@@ -42,7 +42,6 @@ public class CoreHumanResourcesTests
             service.CreateAsync(new CreateEmployeeRequest
             {
                 CompanyId = Guid.NewGuid(),
-                EmployeeCode = "EMP-001",
                 FirstName = "Jane",
                 LastName = "Doe",
                 DateOfJoining = DateTime.UtcNow.Date,
@@ -50,6 +49,26 @@ public class CoreHumanResourcesTests
             }, CancellationToken.None));
 
         Assert.Contains("company", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateEmployeeAsync_ShouldGenerateEmployeeCode()
+    {
+        var company = new Company { Name = "Acme", Code = "ACME" };
+        var employeeRepository = new InMemoryEmployeeRepository();
+        var companyRepository = new InMemoryCompanyRepository();
+        await companyRepository.AddAsync(company);
+        var service = new EmployeeService(employeeRepository, companyRepository, new NoOpUnitOfWork());
+
+        var employee = await service.CreateAsync(new CreateEmployeeRequest
+        {
+            CompanyId = company.Id,
+            FirstName = "Jane",
+            LastName = "Doe",
+            DateOfJoining = DateTime.UtcNow.Date
+        });
+
+        Assert.Equal("EMP-000001", employee.EmployeeCode);
     }
 
     [Fact]
@@ -265,6 +284,9 @@ public class CoreHumanResourcesTests
 
         public Task<Employee?> GetByEmployeeCodeAsync(string employeeCode, CancellationToken cancellationToken = default)
             => Task.FromResult(_items.FirstOrDefault(x => x.EmployeeCode == employeeCode && !x.IsDeleted));
+
+        public Task<long> GetNextEmployeeCodeNumberAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult((long)_items.Count + 1);
     }
 
     private sealed class InMemoryBranchRepository : IBranchRepository

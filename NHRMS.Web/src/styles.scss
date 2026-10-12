@@ -1,1 +1,93 @@
-/* You can add global styles to this file, and also import other style files */
+.form-card,
+.table-card {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.form-card {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+}
+
+.form-card h2 {
+  margin: 0 0 1rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: #475467;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  background: #fff;
+  color: #101828;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+}
+
+.form-grid textarea {
+  resize: vertical;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.primary-button:disabled,
+.text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.error-message {
+  margin: 0 0 1rem;
+  color: #b42318;
+}
+
+.review-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
+}
+
+.reject-button {
+  color: #b42318;
+}
+
+a.primary-button,
+a.chip {
+  display: inline-block;
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

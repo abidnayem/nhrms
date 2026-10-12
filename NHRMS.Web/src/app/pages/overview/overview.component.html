@@ -3,14 +3,17 @@
     <p class="eyebrow">Human resources dashboard</p>
     <h1>Operations overview</h1>
   </div>
-  <button class="primary-button">Create request</button>
+  <a class="primary-button" routerLink="/leave">Create request</a>
 </header>
+
+<p class="error-message" *ngIf="error">{{ error }}</p>
+<p *ngIf="loading">Loading dashboard…</p>
 
 <section class="metrics-grid">
   <article class="metric-card" *ngFor="let metric of metrics">
     <div class="metric-header">
       <span class="metric-label">{{ metric.label }}</span>
-      <span class="badge badge-{{ metric.tone }}">{{ metric.delta }}</span>
+      <span class="badge badge-{{ metric.tone }}">{{ metric.detail }}</span>
     </div>
     <div class="metric-value">{{ metric.value }}</div>
   </article>
@@ -19,7 +22,7 @@
 <section class="quick-actions">
   <h2>Quick actions</h2>
   <div class="chip-row">
-    <button class="chip" *ngFor="let action of actions">{{ action }}</button>
+    <a class="chip" *ngFor="let action of actions" [routerLink]="action.path">{{ action.label }}</a>
   </div>
 </section>
 
@@ -31,7 +34,8 @@
     </div>
 
     <div class="user-list">
-      <div class="user-row" *ngFor="let user of users">
+      <p *ngIf="!loading && activeUsers.length === 0">No active user accounts.</p>
+      <div class="user-row" *ngFor="let user of activeUsers">
         <div class="user-identity">
           <div class="avatar">{{ user.name.charAt(0) }}</div>
           <div>
@@ -52,7 +56,8 @@
     </div>
 
     <div class="role-list">
-      <div class="role-card" *ngFor="let role of roles">
+      <p *ngIf="!loading && roleCards.length === 0">No roles have been configured.</p>
+      <div class="role-card" *ngFor="let role of roleCards">
         <div class="role-name-row">
           <strong>{{ role.name }}</strong>
           <span>{{ role.members }} members</span>

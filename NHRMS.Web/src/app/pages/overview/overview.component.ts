@@ -1,39 +1,93 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { Employee, HrmsApiService, LeaveRequest, PayrollCycle, Role, UserAccount } from '../../hrms-api.service';
 
 @Component({
   selector: 'app-overview-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './overview.component.html',
   styleUrls: ['./overview.component.scss'],
 })
-export class OverviewPageComponent {
-  readonly metrics = [
-    { label: 'Employees', value: '1,284', delta: '+12.4%', tone: 'blue' },
-    { label: 'Active Users', value: '863', delta: '+8.1%', tone: 'green' },
-    { label: 'Open Leave', value: '34', delta: '-3.2%', tone: 'amber' },
-    { label: 'Payroll Run', value: '92%', delta: '+5.7%', tone: 'purple' }
-  ];
+export class OverviewPageComponent implements OnInit {
+  private readonly api = inject(HrmsApiService);
 
+  employees: Employee[] = [];
+  users: UserAccount[] = [];
+  roles: Role[] = [];
+  leaveRequests: LeaveRequest[] = [];
+  payrollCycles: PayrollCycle[] = [];
+  loading = true;
+  error = '';
   readonly actions = [
-    'Add employee',
-    'Create role',
-    'Approve leave',
-    'Run payroll'
+    { label: 'Add employee', path: '/employees' },
+    { label: 'Create role', path: '/access' },
+    { label: 'Review leave', path: '/leave' },
+    { label: 'Create payroll cycle', path: '/payroll' },
   ];
 
-  readonly users = [
-    { name: 'Maya Rahman', role: 'HR Admin', status: 'Active', email: 'maya@acme.com' },
-    { name: 'Daniel Kim', role: 'Payroll Manager', status: 'Active', email: 'daniel@acme.com' },
-    { name: 'Aisha Niazi', role: 'Department Lead', status: 'Pending', email: 'aisha@acme.com' },
-    { name: 'Omar Hassan', role: 'Operations Lead', status: 'Active', email: 'omar@acme.com' }
-  ];
+  get metrics() {
+    const latestCycle = [...this.payrollCycles].sort((a, b) => b.periodStart.localeCompare(a.periodStart))[0];
+    return [
+      { label: 'Employees', value: this.employees.filter(employee => employee.isActive).length.toLocaleString(), detail: `${this.employees.length} total records`, tone: 'blue' },
+      { label: 'Active Users', value: this.users.filter(user => user.isActive).length.toLocaleString(), detail: 'Enabled accounts', tone: 'green' },
+      { label: 'Open Leave', value: this.leaveRequests.filter(request => request.status === 'Pending').length.toLocaleString(), detail: 'Requests awaiting review', tone: 'amber' },
+      { label: 'Payroll Run', value: latestCycle?.status ?? '—', detail: latestCycle ? `${new Date(latestCycle.periodStart).toLocaleDateString()} cycle` : 'No payroll cycles', tone: 'purple' },
+    ];
+  }
 
-  readonly roles = [
-    { name: 'System Administrator', members: 8, description: 'Full platform access and policy configuration.' },
-    { name: 'HR Manager', members: 12, description: 'Manages employee lifecycle, leave, and approvals.' },
-    { name: 'Payroll Officer', members: 5, description: 'Runs payroll cycles and resolves deductions.' },
-    { name: 'Department Lead', members: 19, description: 'Oversees team performance and capacity planning.' }
-  ];
+  get activeUsers() {
+    return this.users
+      .filter(user => user.isActive)
+      .slice(0, 5)
+      .map(user => {
+        const employee = this.employees.find(item => item.id === user.employeeId);
+        return {
+          name: employee ? `${employee.firstName} ${employee.lastName}` : user.userName,
+          email: user.email,
+          role: this.roleNames(user),
+          status: 'Active',
+        };
+      });
+  }
+
+  get roleCards() {
+    return this.roles.slice(0, 5).map(role => ({
+      name: role.name,
+      members: this.users.filter(user => user.roleIds.includes(role.id)).length,
+      description: role.description || role.code,
+    }));
+  }
+
+  ngOnInit(): void {
+    forkJoin({
+      employees: this.api.getEmployees(),
+      users: this.api.getUsers(),
+      roles: this.api.getRoles(),
+      leaveRequests: this.api.getLeaveRequests(),
+      payrollCycles: this.api.getPayrollCycles(),
+    }).subscribe({
+      next: data => {
+        this.employees = data.employees;
+        this.users = data.users;
+        this.roles = data.roles;
+        this.leaveRequests = data.leaveRequests;
+        this.payrollCycles = data.payrollCycles;
+        this.loading = false;
+      },
+      error: () => {
+        this.error = 'Unable to load dashboard data. Confirm that the HRMS API and database are running.';
+        this.loading = false;
+      },
+    });
+  }
+
+  roleNames(user: UserAccount): string {
+    const names = user.roleIds
+      .map(roleId => this.roles.find(role => role.id === roleId)?.name)
+      .filter((name): name is string => Boolean(name));
+    return names.length ? names.join(', ') : 'No role assigned';
+  }
 }

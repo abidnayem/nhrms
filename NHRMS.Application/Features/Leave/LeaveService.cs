@@ -144,6 +144,32 @@ public sealed class LeaveRequestService
         return Map(leaveRequest);
     }
 
+    public async Task<LeaveRequestDto> UpdateStatusAsync(
+        Guid id,
+        string status,
+        CancellationToken cancellationToken = default)
+    {
+        var leaveRequest = await _leaveRequestRepository.GetByIdAsync(id, cancellationToken);
+        if (leaveRequest is null)
+            throw new KeyNotFoundException("Leave request not found.");
+
+        if (string.IsNullOrWhiteSpace(status))
+            throw new ArgumentException("Status is required.", nameof(status));
+
+        var normalizedStatus = status.Trim();
+        if (normalizedStatus is not ("Approved" or "Rejected"))
+            throw new ArgumentException("Status must be Approved or Rejected.", nameof(status));
+
+        if (leaveRequest.Status != "Pending")
+            throw new InvalidOperationException("Only pending leave requests can be reviewed.");
+
+        leaveRequest.Status = normalizedStatus;
+        await _leaveRequestRepository.UpdateAsync(leaveRequest, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Map(leaveRequest);
+    }
+
     private static LeaveRequestDto Map(LeaveRequest leaveRequest)
         => new()
         {

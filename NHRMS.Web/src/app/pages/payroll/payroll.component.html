@@ -3,23 +3,47 @@
     <p class="eyebrow">Finance operations</p>
     <h1>Payroll</h1>
   </div>
-  <button class="primary-button">Run payroll</button>
+  <button class="primary-button" type="button" (click)="showForm = !showForm">Create payroll cycle</button>
 </header>
+
+<p class="error-message" *ngIf="error">{{ error }}</p>
+
+<form class="form-card" *ngIf="showForm" (ngSubmit)="createCycle()">
+  <h2>New payroll cycle</h2>
+  <div class="form-grid">
+    <label>Company
+      <select name="companyId" [(ngModel)]="form.companyId" required>
+        <option *ngFor="let company of companies" [value]="company.id">{{ company.name }}</option>
+      </select>
+    </label>
+    <label>Period start<input name="periodStart" type="date" [(ngModel)]="form.periodStart" required /></label>
+    <label>Period end<input name="periodEnd" type="date" [(ngModel)]="form.periodEnd" required /></label>
+    <label>Gross total<input name="totalGross" type="number" min="0" step="0.01" [(ngModel)]="form.totalGross" required /></label>
+    <label>Deductions<input name="totalDeductions" type="number" min="0" step="0.01" [(ngModel)]="form.totalDeductions" required /></label>
+  </div>
+  <div class="form-actions">
+    <button class="primary-button" type="submit" [disabled]="saving">{{ saving ? 'Saving…' : 'Create cycle' }}</button>
+    <button class="text-button" type="button" (click)="showForm = false">Cancel</button>
+  </div>
+</form>
 
 <section class="summary-grid">
   <article class="summary-card" *ngFor="let item of summary">
     <span>{{ item.label }}</span>
-    <strong>{{ item.value }}</strong>
+    <strong *ngIf="item.format === 'amount'">{{ item.value | number:'1.2-2' }}</strong>
+    <strong *ngIf="item.format === 'count'">{{ item.value }}</strong>
   </article>
 </section>
 
 <section class="cards-grid">
+  <p *ngIf="loading">Loading payroll cycles…</p>
+  <p *ngIf="!loading && cycles.length === 0">No payroll cycles yet.</p>
   <article class="payroll-card" *ngFor="let cycle of cycles">
     <div class="card-header">
-      <h2>{{ cycle.name }}</h2>
-      <span class="status status-{{ cycle.status.toLowerCase().replace(' ', '-') }}">{{ cycle.status }}</span>
+      <h2>{{ cycle.periodStart | date:'mediumDate' }} – {{ cycle.periodEnd | date:'mediumDate' }}</h2>
+      <span class="status" [class.status-active]="cycle.status === 'Completed' || cycle.status === 'Closed'" [class.status-pending]="cycle.status === 'Draft'">{{ cycle.status }}</span>
     </div>
-    <p>Total disbursed</p>
-    <strong>{{ cycle.amount }}</strong>
+    <p>Gross {{ cycle.totalGross | number:'1.2-2' }} · Deductions {{ cycle.totalDeductions | number:'1.2-2' }}</p>
+    <strong>Net {{ cycle.totalNet | number:'1.2-2' }}</strong>
   </article>
 </section>

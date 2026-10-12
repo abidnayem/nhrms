@@ -27,4 +27,19 @@ public sealed class LeaveRequestsController : ControllerBase
         var leaveRequest = await _leaveRequestService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetAll), new { }, leaveRequest);
     }
+
+    [HttpPut("{id:guid}/status")]
+    public async Task<ActionResult<LeaveRequestDto>> UpdateStatus(
+        Guid id,
+        [FromBody] UpdateLeaveRequestStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var leaveRequest = await _leaveRequestService.UpdateStatusAsync(id, request.Status, cancellationToken);
+        return Ok(leaveRequest);
+    }
+}
+
+public sealed class UpdateLeaveRequestStatusRequest
+{
+    public string Status { get; set; } = string.Empty;
 }

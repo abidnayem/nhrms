@@ -27,6 +27,30 @@ This repository was initialized to reflect the first implementation phase of the
 - API startup wires up DI, SQL Server, OpenAPI, and health endpoint
 - Initial architecture tests validate dependency boundaries
 
+## Running the dynamic HRMS application
+
+The Angular pages read and write employee, attendance, leave, payroll, user, and role records through the API. SQL Server is configured for `DESKTOP-TBBD784`, database `NHRMSDb`, and login `sa`. The password is deliberately stored in .NET User Secrets rather than a tracked settings file:
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=DESKTOP-TBBD784;Database=NHRMSDb;User Id=sa;Password=<your-password>;TrustServerCertificate=True;" --project NHRMS.Api
+```
+
+On API startup, EF Core applies the checked-in migrations and seeds the initial company and standard department, designation, employment type, leave types, and roles. No sample employee records are inserted.
+
+Run the API and web client in separate terminals:
+
+```powershell
+dotnet run --project NHRMS.Api
+```
+
+```powershell
+cd NHRMS.Web
+npm install
+npm start
+```
+
+The Angular development server uses `http://localhost:4200`; the API listens on `http://localhost:5209`. CORS is configured for the local web origin.
+
 ## Verification
 
 The solution was validated with `dotnet test NHRMS.slnx --nologo`.

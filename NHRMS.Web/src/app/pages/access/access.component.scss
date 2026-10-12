@@ -18,6 +18,26 @@
   font-size: clamp(2rem, 2.5vw, 2.7rem);
 }
 
+.access-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -0.5rem 0 1rem;
+}
+
+.role-assignment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.role-assignment select {
+  max-width: 12rem;
+  padding: 0.4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
 .primary-button {
   background: linear-gradient(135deg, #2563eb, #7c3aed);
   color: #fff;
