@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using NHRMS.Application.Abstractions;
 using NHRMS.Domain;
 
@@ -96,7 +95,7 @@ public sealed class UserAccountService
             EmployeeId = request.EmployeeId,
             UserName = userName,
             Email = email,
-            PasswordHash = HashPassword(request.Password),
+            PasswordHash = PasswordHashing.Hash(request.Password),
             IsActive = request.IsActive,
             CreatedAtUtc = DateTime.UtcNow,
             CreatedBy = "system"
@@ -106,6 +105,42 @@ public sealed class UserAccountService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Map(account, Array.Empty<Guid>());
+    }
+
+    public async Task<AuthenticatedUserDto?> AuthenticateAsync(
+        string userName,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrEmpty(password))
+            return null;
+        var account = await _userAccountRepository.GetByUsernameAsync(userName.Trim(), cancellationToken);
+        if (account is null || !account.IsActive || !PasswordHashing.Verify(password, account.PasswordHash, out var needsUpgrade))
+            return null;
+
+        if (needsUpgrade)
+        {
+            account.PasswordHash = PasswordHashing.Hash(password);
+            await _userAccountRepository.UpdateAsync(account, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        var roles = Array.Empty<string>();
+        if (_userRoleRepository is not null && _roleRepository is not null)
+        {
+            var assignments = await _userRoleRepository.GetByUserIdAsync(account.Id, cancellationToken);
+            var activeRoleIds = assignments.Where(x => x.IsActive).Select(x => x.RoleId).ToHashSet();
+            roles = (await _roleRepository.GetAllAsync(cancellationToken))
+                .Where(role => role.IsActive && activeRoleIds.Contains(role.Id))
+                .Select(role => role.Code)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        var permissions = _userRoleRepository is null
+            ? Array.Empty<string>()
+            : await _userRoleRepository.GetPermissionCodesByUserIdAsync(account.Id, cancellationToken);
+        return new AuthenticatedUserDto(Map(account, Array.Empty<Guid>()), roles, permissions);
     }
 
     public async Task<UserAccountDto> AssignRoleAsync(AssignRoleRequest request, CancellationToken cancellationToken = default)
@@ -161,12 +196,6 @@ public sealed class UserAccountService
 
         var roles = await _userRoleRepository.GetByUserIdAsync(user.Id, cancellationToken);
         return Map(user, roles.Select(x => x.RoleId).ToArray());
-    }
-
-    private static string HashPassword(string password)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-        return Convert.ToHexString(bytes);
     }
 
     private static UserAccountDto Map(UserAccount account, IEnumerable<Guid>? roleIds)

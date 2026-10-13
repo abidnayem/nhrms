@@ -1,0 +1,40 @@
+<header class="page-header">
+  <div><p class="eyebrow">Restricted HR workspace</p><h1>Employee relations</h1><p class="intro">Access is limited by server permissions. Case details stay separate from the employee directory.</p></div>
+</header>
+<p *ngIf="error" class="error-message">{{ error }}</p>
+
+<section class="discipline-card">
+  <label>Employee
+    <select name="employee" [(ngModel)]="selectedEmployeeId" (ngModelChange)="loadCases()">
+      <option *ngFor="let employee of employees" [value]="employee.id">{{ employee.employeeCode }} · {{ employee.firstName }} {{ employee.lastName }}</option>
+    </select>
+  </label>
+</section>
+
+<section class="discipline-card" *ngIf="canManage && selectedEmployeeId">
+  <h2>Open a restricted case</h2>
+  <form class="case-form" (ngSubmit)="create()">
+    <label>Case type<select name="caseType" [(ngModel)]="form.caseType"><option value="ShowCause">Show cause</option><option value="Warning">Warning</option><option value="Investigation">Investigation</option><option value="Other">Other</option></select></label>
+    <label>Incident date<input name="occurredOn" type="date" [(ngModel)]="form.occurredOn" required /></label>
+    <label class="wide-field">Subject<input name="subject" [(ngModel)]="form.subject" maxlength="200" required /></label>
+    <label class="wide-field">Confidential case summary<textarea name="summary" [(ngModel)]="form.summary" maxlength="4000" rows="4" required></textarea></label>
+    <button class="primary-button" type="submit" [disabled]="saving || !form.subject.trim() || !form.summary.trim()">Open case</button>
+  </form>
+</section>
+
+<section class="discipline-card">
+  <h2>Case record</h2>
+  <p *ngIf="loading">Loading restricted records…</p>
+  <p *ngIf="!loading && !cases.length" class="empty-state">No employee-relations cases are recorded.</p>
+  <article class="case-row" *ngFor="let item of cases">
+    <div class="case-title"><strong>{{ item.caseType }} · {{ item.subject }}</strong><span>{{ item.status }}</span></div>
+    <small>Incident {{ item.occurredOn | date:'mediumDate' }} · Opened by {{ item.openedBy }} · {{ item.openedAtUtc | date:'medium' }}</small>
+    <p class="summary">{{ item.summary }}</p>
+    <p *ngIf="item.decision" class="decision-copy">Decision by {{ item.decidedBy }} · {{ item.decidedAtUtc | date:'medium' }}: {{ item.decision }}</p>
+    <div class="decision-form" *ngIf="canDecide && item.status === 'Open'">
+      <label>Decision<textarea name="decision-{{item.id}}" [(ngModel)]="decisions[item.id]" maxlength="4000" rows="3" required></textarea></label>
+      <button class="text-button" type="button" (click)="decide(item, true)" [disabled]="!decisions[item.id]?.trim()">Uphold and resolve</button>
+      <button class="text-button" type="button" (click)="decide(item, false)" [disabled]="!decisions[item.id]?.trim()">Dismiss case</button>
+    </div>
+  </article>
+</section>

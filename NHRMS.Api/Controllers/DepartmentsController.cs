@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NHRMS.Application.Features.Departments;
 
@@ -15,6 +16,7 @@ public sealed class DepartmentsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "OrganizationRead")]
     public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetAll(CancellationToken cancellationToken)
     {
         var departments = await _departmentService.GetAllAsync(cancellationToken);
@@ -22,6 +24,7 @@ public sealed class DepartmentsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "OrganizationAdmin")]
     public async Task<ActionResult<DepartmentDto>> Create([FromBody] CreateDepartmentRequest request, CancellationToken cancellationToken)
     {
         var department = await _departmentService.CreateAsync(request, cancellationToken);

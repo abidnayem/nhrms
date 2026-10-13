@@ -35,6 +35,29 @@ public static class NhrmsDbSeeder
         await SeedLeaveTypeAsync(db, company.Id, "Sick leave", "SICK", 10, cancellationToken);
         await SeedRoleAsync(db, "HR Manager", "HR_MANAGER", "Manages employee records and leave approvals.", cancellationToken);
         await SeedRoleAsync(db, "Payroll Officer", "PAYROLL_OFFICER", "Manages payroll cycles.", cancellationToken);
+        var hrManager = await db.Roles.FirstAsync(x => x.Code == "HR_MANAGER", cancellationToken);
+        var payrollOfficer = await db.Roles.FirstAsync(x => x.Code == "PAYROLL_OFFICER", cancellationToken);
+        foreach (var permission in new[]
+        {
+            ("Employee read", "EMPLOYEE_READ"), ("Employee write", "EMPLOYEE_WRITE"),
+            ("Onboarding management", "ONBOARDING_MANAGE"), ("User administration", "USER_ADMIN"),
+            ("Probation management", "PROBATION_MANAGE"), ("Probation review", "PROBATION_REVIEW"),
+            ("Probation approval", "PROBATION_APPROVE"),
+            ("Employment change management", "EMPLOYMENT_CHANGE_MANAGE"),
+            ("Employment change approval", "EMPLOYMENT_CHANGE_APPROVE"),
+            ("Discipline read", "DISCIPLINE_READ"),
+            ("Discipline management", "DISCIPLINE_MANAGE"),
+            ("Discipline decision", "DISCIPLINE_DECIDE"),
+            ("Organization read", "ORGANIZATION_READ"), ("Organization administration", "ORGANIZATION_ADMIN"),
+            ("Leave management", "LEAVE_MANAGE"),
+            ("Attendance management", "ATTENDANCE_MANAGE"),
+            ("Payroll execution", "PAYROLL_RUN"), ("HR reports", "REPORT_READ")
+        })
+            await SeedPermissionAsync(db, hrManager.Id, permission.Item1, permission.Item2, cancellationToken);
+        await SeedPermissionAsync(db, payrollOfficer.Id, "Employee read", "EMPLOYEE_READ", cancellationToken);
+        await SeedPermissionAsync(db, payrollOfficer.Id, "Payroll execution", "PAYROLL_RUN", cancellationToken);
+        await SeedPermissionAsync(db, payrollOfficer.Id, "HR reports", "REPORT_READ", cancellationToken);
+        await SeedPermissionAsync(db, payrollOfficer.Id, "Organization read", "ORGANIZATION_READ", cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -112,5 +135,23 @@ public static class NhrmsDbSeeder
             db.Roles.Add(new Role { Name = name, Code = code, Description = description });
         else
             entity.IsDeleted = false;
+    }
+
+    private static async Task SeedPermissionAsync(
+        NhrmsDbContext db,
+        Guid roleId,
+        string name,
+        string code,
+        CancellationToken cancellationToken)
+    {
+        var permission = await db.Permissions.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.RoleId == roleId && x.Code == code, cancellationToken);
+        if (permission is null)
+            db.Permissions.Add(new Permission { RoleId = roleId, Name = name, Code = code });
+        else
+        {
+            permission.IsDeleted = false;
+            permission.IsActive = true;
+        }
     }
 }

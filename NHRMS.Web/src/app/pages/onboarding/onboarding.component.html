@@ -1,0 +1,56 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">People operations</p>
+    <h1>Onboarding</h1>
+    <p class="page-description">Track joining tasks for each employee.</p>
+  </div>
+</header>
+
+<p class="error-message" *ngIf="error">{{ error }}</p>
+
+<section class="onboarding-card">
+  <label class="employee-picker">Employee
+    <select name="employee" [(ngModel)]="selectedEmployeeId" (ngModelChange)="loadTasks()">
+      <option value="">Select an employee</option>
+      <option *ngFor="let employee of employees" [value]="employee.id" [disabled]="!employee.isActive">
+        {{ employee.employeeCode }} · {{ employee.firstName }} {{ employee.lastName }}
+      </option>
+    </select>
+  </label>
+</section>
+
+<section class="onboarding-card" *ngIf="selectedEmployee?.isActive">
+  <h2>Add checklist task</h2>
+  <form class="task-form" (ngSubmit)="createTask()">
+    <label>Task title<input name="title" [(ngModel)]="form.title" maxlength="200" required /></label>
+    <label>Description<input name="description" [(ngModel)]="form.description" maxlength="1000" /></label>
+    <label>Due date<input name="dueDate" type="date" [(ngModel)]="form.dueDate" /></label>
+    <label class="checkbox-label"><input name="isRequired" type="checkbox" [(ngModel)]="form.isRequired" /> Required</label>
+    <button class="primary-button" type="submit" [disabled]="saving || !form.title.trim()">{{ saving ? 'Saving…' : 'Add task' }}</button>
+  </form>
+</section>
+
+<section class="onboarding-card">
+  <div class="table-header">
+    <h2>Checklist</h2>
+    <button class="text-button" type="button" (click)="loadTasks()" [disabled]="!selectedEmployeeId">Refresh</button>
+  </div>
+  <p *ngIf="loading">Loading onboarding data…</p>
+  <p *ngIf="!loading && !selectedEmployeeId">Select an active employee to view their checklist.</p>
+  <p *ngIf="!loading && selectedEmployeeId && tasks.length === 0">No onboarding tasks have been added.</p>
+  <div class="task-list" *ngIf="!loading && tasks.length">
+    <article class="task-row" *ngFor="let task of tasks">
+      <div>
+        <h3>{{ task.title }} <span *ngIf="task.isRequired" class="required-tag">Required</span></h3>
+        <p *ngIf="task.description">{{ task.description }}</p>
+        <small *ngIf="task.dueDate">Due {{ task.dueDate | date:'mediumDate' }}</small>
+        <small *ngIf="task.completedAtUtc">Completed {{ task.completedAtUtc | date:'medium' }}</small>
+      </div>
+      <div class="task-actions">
+        <span class="status" [class.status-active]="task.status === 'Completed'" [class.status-pending]="task.status === 'Pending'">{{ task.status }}</span>
+        <button *ngIf="task.status === 'Pending'" class="text-button" type="button" (click)="updateStatus(task, 'Completed')">Complete</button>
+        <button *ngIf="task.status === 'Pending' && !task.isRequired" class="text-button" type="button" (click)="updateStatus(task, 'Waived')">Waive</button>
+      </div>
+    </article>
+  </div>
+</section>

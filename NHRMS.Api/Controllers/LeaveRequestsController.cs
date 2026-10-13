@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NHRMS.Application.Features.Leave;
 
 namespace NHRMS.Api.Controllers;
 
 [ApiController]
+[Authorize(Policy = "LeaveManage")]
 [Route("api/[controller]")]
 public sealed class LeaveRequestsController : ControllerBase
 {

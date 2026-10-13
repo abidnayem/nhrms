@@ -104,4 +104,6 @@ public class Employee : AuditableEntity
     public DateTime DateOfJoining { get; set; }
     public DateTime? DateOfLeaving { get; set; }
     public bool IsActive { get; set; } = true;
+
+    public ICollection<EmployeeOnboardingTask> OnboardingTasks { get; private set; } = new HashSet<EmployeeOnboardingTask>();
 }

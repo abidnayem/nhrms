@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
-import { Company, Department, Designation, Employee, HrmsApiService, dateInputValue } from '../../hrms-api.service';
+import { Company, Department, Designation, Employee, EmploymentType, HrmsApiService, dateInputValue } from '../../hrms-api.service';
 
 @Component({
   selector: 'app-employees-page',
@@ -15,13 +15,25 @@ export class EmployeesPageComponent implements OnInit {
   private readonly api = inject(HrmsApiService);
 
   employees: Employee[] = [];
+  totalEmployees = 0;
   companies: Company[] = [];
   departments: Department[] = [];
   designations: Designation[] = [];
+  employmentTypes: EmploymentType[] = [];
   loading = true;
   saving = false;
   showForm = false;
   error = '';
+  searchTerm = '';
+  statusFilter = '';
+  departmentFilter = '';
+  companyFilter = '';
+  page = 1;
+  readonly pageSize = 25;
+
+  get pageCount(): number {
+    return Math.max(1, Math.ceil(this.totalEmployees / this.pageSize));
+  }
   readonly form = {
     companyId: '',
     firstName: '',
@@ -30,6 +42,7 @@ export class EmployeesPageComponent implements OnInit {
     dateOfJoining: dateInputValue(),
     departmentId: '',
     designationId: '',
+    employmentTypeId: '',
   };
 
   get summary() {
@@ -39,10 +52,10 @@ export class EmployeesPageComponent implements OnInit {
       return joined.getMonth() === currentMonth.getMonth() && joined.getFullYear() === currentMonth.getFullYear();
     }).length;
     return [
-      { label: 'Total employees', value: this.employees.length },
-      { label: 'New hires this month', value: newHires },
-      { label: 'Active employees', value: this.employees.filter(employee => employee.isActive).length },
-      { label: 'Inactive employees', value: this.employees.filter(employee => !employee.isActive).length },
+      { label: 'Total employees', value: this.totalEmployees },
+      { label: 'New hires this month · page', value: newHires },
+      { label: 'Active · page', value: this.employees.filter(employee => employee.isActive).length },
+      { label: 'Inactive · page', value: this.employees.filter(employee => !employee.isActive).length },
     ];
   }
 
@@ -54,16 +67,26 @@ export class EmployeesPageComponent implements OnInit {
     this.loading = true;
     this.error = '';
     forkJoin({
-      employees: this.api.getEmployees(),
+      employees: this.api.getEmployeeDirectory({
+        search: this.searchTerm.trim(),
+        companyId: this.companyFilter,
+        departmentId: this.departmentFilter,
+        isActive: this.statusFilter,
+        page: this.page,
+        pageSize: this.pageSize,
+      }),
       companies: this.api.getCompanies(),
       departments: this.api.getDepartments(),
       designations: this.api.getDesignations(),
+      employmentTypes: this.api.getEmploymentTypes(),
     }).subscribe({
       next: data => {
-        this.employees = data.employees;
+        this.employees = data.employees.items;
+        this.totalEmployees = data.employees.totalCount;
         this.companies = data.companies;
         this.departments = data.departments;
         this.designations = data.designations;
+        this.employmentTypes = data.employmentTypes;
         this.form.companyId = this.form.companyId || data.companies[0]?.id || '';
         this.loading = false;
       },
@@ -72,6 +95,18 @@ export class EmployeesPageComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  search(): void {
+    this.page = 1;
+    this.load();
+  }
+
+  changePage(page: number): void {
+    const lastPage = Math.max(1, Math.ceil(this.totalEmployees / this.pageSize));
+    if (page < 1 || page > lastPage) return;
+    this.page = page;
+    this.load();
   }
 
   createEmployee(): void {
@@ -86,6 +121,7 @@ export class EmployeesPageComponent implements OnInit {
       ...this.form,
       departmentId: this.form.departmentId || null,
       designationId: this.form.designationId || null,
+      employmentTypeId: this.form.employmentTypeId || null,
     }).subscribe({
       next: () => {
         this.showForm = false;
@@ -97,6 +133,7 @@ export class EmployeesPageComponent implements OnInit {
           dateOfJoining: dateInputValue(),
           departmentId: '',
           designationId: '',
+          employmentTypeId: '',
         });
         this.load();
       },
@@ -117,5 +154,9 @@ export class EmployeesPageComponent implements OnInit {
 
   designationName(id: string | null): string {
     return this.designations.find(designation => designation.id === id)?.name ?? '—';
+  }
+
+  employmentTypeName(id: string | null): string {
+    return this.employmentTypes.find(type => type.id === id)?.name ?? '—';
   }
 }

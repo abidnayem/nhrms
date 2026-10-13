@@ -1,0 +1,20 @@
+.change-card { background: #fff; border: 1px solid #e6eaf0; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+.change-card h2 { margin: 0 0 14px; font-size: 1.1rem; }
+.change-card label { display: grid; gap: 6px; color: #526071; font-size: .85rem; }
+.change-card select, .change-card input, .change-card textarea { width: 100%; min-height: 40px; border: 1px solid #d8dee8; border-radius: 8px; padding: 8px 10px; color: #182230; background: #fff; font: inherit; }
+.change-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: end; }
+.wide-field { grid-column: 1 / -1; }
+.change-row { border-top: 1px solid #e8edf3; padding: 16px 0; display: grid; gap: 8px; }
+.change-heading { display: flex; justify-content: space-between; gap: 12px; color: #28374a; }
+.change-heading span, .change-row small { color: #718096; font-size: .82rem; }
+.change-row p { margin: 0; color: #445166; }
+.change-values { display: grid; gap: 4px; color: #526071; font-size: .88rem; }
+.decision-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.decision-row input { flex: 1; min-width: 180px; }
+.primary-button, .secondary-button, .text-button { border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
+.primary-button { background: #165dff; color: #fff; }
+.secondary-button { background: #edf3ff; color: #164cb5; }
+.text-button { background: transparent; color: #165dff; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.empty-state, .intro { color: #718096; }
+@media (max-width: 700px) { .change-form { grid-template-columns: 1fr; } .wide-field { grid-column: auto; } }

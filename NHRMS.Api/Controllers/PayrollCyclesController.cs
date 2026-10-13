@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NHRMS.Application.Features.Payroll;
 
 namespace NHRMS.Api.Controllers;
 
 [ApiController]
+[Authorize(Policy = "PayrollRun")]
 [Route("api/[controller]")]
 public sealed class PayrollCyclesController : ControllerBase
 {

@@ -25,6 +25,11 @@ public class NhrmsDbContext : DbContext
     public DbSet<PayrollCycle> PayrollCycles => Set<PayrollCycle>();
     public DbSet<Payslip> Payslips => Set<Payslip>();
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<EmployeeOnboardingTask> EmployeeOnboardingTasks => Set<EmployeeOnboardingTask>();
+    public DbSet<ProbationCase> ProbationCases => Set<ProbationCase>();
+    public DbSet<ProbationReview> ProbationReviews => Set<ProbationReview>();
+    public DbSet<EmploymentChange> EmploymentChanges => Set<EmploymentChange>();
+    public DbSet<DisciplinaryCase> DisciplinaryCases => Set<DisciplinaryCase>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
@@ -126,6 +131,75 @@ public class NhrmsDbContext : DbContext
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
+        modelBuilder.Entity<EmployeeOnboardingTask>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.HasIndex(x => new { x.EmployeeId, x.Status, x.DueDate });
+            entity.HasOne(x => x.Employee)
+                .WithMany(x => x.OnboardingTasks)
+                .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ProbationCase>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.HasIndex(x => x.EmployeeId).IsUnique().HasFilter("[Status] <> 'Confirmed'");
+            entity.ToTable(table => table.HasCheckConstraint("CK_ProbationCases_DateRange", "[PlannedEndDate] > [StartDate]"));
+            entity.HasOne(x => x.Employee)
+                .WithMany()
+                .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasMany(x => x.Reviews)
+                .WithOne(x => x.ProbationCase)
+                .HasForeignKey(x => x.ProbationCaseId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ProbationReview>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Recommendation).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Reason).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.ReviewedBy).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.DecidedBy).HasMaxLength(100);
+            entity.Property(x => x.DecisionNotes).HasMaxLength(2000);
+            entity.HasIndex(x => x.ProbationCaseId).IsUnique().HasFilter("[Status] = 'Pending'");
+        });
+
+        modelBuilder.Entity<EmploymentChange>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ChangeType).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Reason).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.RequestedBy).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.DecidedBy).HasMaxLength(100);
+            entity.Property(x => x.DecisionNotes).HasMaxLength(2000);
+            entity.HasIndex(x => x.EmployeeId).IsUnique().HasFilter("[Status] IN ('Pending', 'Approved')");
+            entity.HasIndex(x => new { x.Status, x.EffectiveDate });
+            entity.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<DisciplinaryCase>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.CaseType).HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Subject).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Summary).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.OpenedBy).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Decision).HasMaxLength(4000);
+            entity.Property(x => x.DecidedBy).HasMaxLength(100);
+            entity.HasIndex(x => new { x.EmployeeId, x.OccurredOn });
+            entity.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.NoAction);
+        });
+
         modelBuilder.Entity<Role>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -220,9 +294,11 @@ public class NhrmsDbContext : DbContext
             entity.Property(x => x.UserName).HasMaxLength(100).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PasswordHash).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.IsBootstrapAccount).HasDefaultValue(false);
             entity.HasIndex(x => x.UserName).IsUnique();
             entity.HasIndex(x => x.Email).IsUnique();
             entity.HasIndex(x => x.EmployeeId).IsUnique();
+            entity.HasIndex(x => x.IsBootstrapAccount).IsUnique().HasFilter("[IsBootstrapAccount] = 1");
 
             entity.HasOne(x => x.Employee)
                 .WithMany()
@@ -479,6 +555,132 @@ public class EmployeeRepository : Repository<Employee>, IEmployeeRepository
                 await connection.CloseAsync();
         }
     }
+
+    public async Task<(IReadOnlyList<Employee> Items, int TotalCount)> SearchAsync(
+        string? search,
+        Guid? companyId,
+        Guid? departmentId,
+        bool? isActive,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Employees.AsNoTracking().Where(x => !x.IsDeleted);
+        if (companyId.HasValue)
+            query = query.Where(x => x.CompanyId == companyId.Value);
+        if (departmentId.HasValue)
+            query = query.Where(x => x.DepartmentId == departmentId.Value);
+        if (isActive.HasValue)
+            query = query.Where(x => x.IsActive == isActive.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(x =>
+                x.EmployeeCode.Contains(term) ||
+                x.FirstName.Contains(term) ||
+                x.LastName.Contains(term) ||
+                (x.Email != null && x.Email.Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(x => x.EmployeeCode)
+            .ThenBy(x => x.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+        return (items, totalCount);
+    }
+}
+
+public class EmployeeOnboardingTaskRepository : Repository<EmployeeOnboardingTask>, IEmployeeOnboardingTaskRepository
+{
+    public EmployeeOnboardingTaskRepository(NhrmsDbContext dbContext) : base(dbContext)
+    {
+    }
+
+    public async Task<IReadOnlyList<EmployeeOnboardingTask>> GetByEmployeeIdAsync(
+        Guid employeeId,
+        CancellationToken cancellationToken = default)
+        => await _dbContext.EmployeeOnboardingTasks
+            .Where(x => x.EmployeeId == employeeId && !x.IsDeleted)
+            .OrderBy(x => x.Status)
+            .ThenBy(x => x.DueDate)
+            .ThenBy(x => x.Title)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+}
+
+public class ProbationRepository : Repository<ProbationCase>, IProbationRepository
+{
+    public ProbationRepository(NhrmsDbContext dbContext) : base(dbContext)
+    {
+    }
+
+    public async Task<IReadOnlyList<ProbationCase>> GetByEmployeeIdAsync(Guid employeeId, CancellationToken cancellationToken = default)
+        => await _dbContext.ProbationCases
+            .Where(x => x.EmployeeId == employeeId && !x.IsDeleted)
+            .Include(x => x.Reviews.Where(review => !review.IsDeleted))
+            .OrderByDescending(x => x.StartDate)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+    public async Task<ProbationCase?> GetWithReviewsAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _dbContext.ProbationCases
+            .Include(x => x.Reviews.Where(review => !review.IsDeleted))
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
+
+    public async Task<ProbationReview?> GetReviewAsync(Guid caseId, Guid reviewId, CancellationToken cancellationToken = default)
+        => await _dbContext.ProbationReviews
+            .FirstOrDefaultAsync(x => x.Id == reviewId && x.ProbationCaseId == caseId && !x.IsDeleted, cancellationToken);
+
+    public Task<bool> HasPendingReviewAsync(Guid caseId, CancellationToken cancellationToken = default)
+        => _dbContext.ProbationReviews.AnyAsync(
+            x => x.ProbationCaseId == caseId && x.Status == ProbationReviewStatus.Pending && !x.IsDeleted,
+            cancellationToken);
+
+    public async Task AddReviewAsync(ProbationReview review, CancellationToken cancellationToken = default)
+        => await _dbContext.ProbationReviews.AddAsync(review, cancellationToken);
+
+    public Task UpdateReviewAsync(ProbationReview review, CancellationToken cancellationToken = default)
+    {
+        _dbContext.ProbationReviews.Update(review);
+        return Task.CompletedTask;
+    }
+}
+
+public class EmploymentChangeRepository : Repository<EmploymentChange>, IEmploymentChangeRepository
+{
+    public EmploymentChangeRepository(NhrmsDbContext dbContext) : base(dbContext) { }
+
+    public async Task<IReadOnlyList<EmploymentChange>> GetByEmployeeIdAsync(Guid employeeId, CancellationToken cancellationToken = default)
+        => await _dbContext.EmploymentChanges.AsNoTracking()
+            .Where(x => x.EmployeeId == employeeId && !x.IsDeleted)
+            .OrderByDescending(x => x.EffectiveDate).ThenByDescending(x => x.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    public Task<EmploymentChange?> GetChangeAsync(Guid employeeId, Guid changeId, CancellationToken cancellationToken = default)
+        => _dbContext.EmploymentChanges.FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.Id == changeId && !x.IsDeleted, cancellationToken);
+
+    public Task<bool> HasOpenChangeAsync(Guid employeeId, CancellationToken cancellationToken = default)
+        => _dbContext.EmploymentChanges.AnyAsync(x => x.EmployeeId == employeeId && !x.IsDeleted &&
+            (x.Status == EmploymentChangeStatus.Pending || x.Status == EmploymentChangeStatus.Approved), cancellationToken);
+
+    public async Task<IReadOnlyList<EmploymentChange>> GetDueApprovedAsync(Guid employeeId, DateTime effectiveOnOrBefore, CancellationToken cancellationToken = default)
+        => await _dbContext.EmploymentChanges
+            .Where(x => x.EmployeeId == employeeId && x.Status == EmploymentChangeStatus.Approved && !x.IsDeleted && x.EffectiveDate <= effectiveOnOrBefore)
+            .OrderBy(x => x.EffectiveDate).ThenBy(x => x.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+}
+
+public class DisciplinaryCaseRepository : Repository<DisciplinaryCase>, IDisciplinaryCaseRepository
+{
+    public DisciplinaryCaseRepository(NhrmsDbContext dbContext) : base(dbContext) { }
+    public async Task<IReadOnlyList<DisciplinaryCase>> GetByEmployeeIdAsync(Guid employeeId, CancellationToken cancellationToken = default)
+        => await _dbContext.DisciplinaryCases.Where(x => x.EmployeeId == employeeId && !x.IsDeleted)
+            .OrderByDescending(x => x.OccurredOn).ThenByDescending(x => x.OpenedAtUtc).ToListAsync(cancellationToken);
+    public Task<DisciplinaryCase?> GetCaseAsync(Guid employeeId, Guid caseId, CancellationToken cancellationToken = default)
+        => _dbContext.DisciplinaryCases.FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.Id == caseId && !x.IsDeleted, cancellationToken);
 }
 
 public class UserAccountRepository : Repository<UserAccount>, IUserAccountRepository
@@ -522,5 +724,17 @@ public class UserRoleRepository : Repository<UserRole>, IUserRoleRepository
         => await _dbContext.UserRoles
             .Where(x => x.UserId == userId && !x.IsDeleted)
             .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<string>> GetPermissionCodesByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+        => await (from userRole in _dbContext.UserRoles.AsNoTracking()
+                  join role in _dbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                  join permission in _dbContext.Permissions.AsNoTracking() on role.Id equals permission.RoleId
+                  where userRole.UserId == userId && userRole.IsActive && !userRole.IsDeleted
+                      && role.IsActive && !role.IsDeleted && permission.IsActive && !permission.IsDeleted
+                  select permission.Code)
+            .Distinct()
             .ToListAsync(cancellationToken);
 }

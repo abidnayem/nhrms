@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NHRMS.Application.Features.Users;
 
 namespace NHRMS.Api.Controllers;
 
 [ApiController]
+[Authorize(Policy = "UserAdmin")]
 [Route("api/[controller]")]
 public sealed class UsersController : ControllerBase
 {

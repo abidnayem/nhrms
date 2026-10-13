@@ -26,6 +26,10 @@ public static class DependencyInjection
         services.AddScoped<IPayrollCycleRepository, PayrollCycleRepository>();
         services.AddScoped<IPayslipRepository, PayslipRepository>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IEmployeeOnboardingTaskRepository, EmployeeOnboardingTaskRepository>();
+        services.AddScoped<IProbationRepository, ProbationRepository>();
+        services.AddScoped<IEmploymentChangeRepository, EmploymentChangeRepository>();
+        services.AddScoped<IDisciplinaryCaseRepository, DisciplinaryCaseRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
         services.AddScoped<IUserRoleRepository, UserRoleRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

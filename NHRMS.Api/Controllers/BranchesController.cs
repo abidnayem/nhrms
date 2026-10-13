@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NHRMS.Application.Features.Branches;
 
@@ -15,6 +16,7 @@ public sealed class BranchesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "OrganizationRead")]
     public async Task<ActionResult<IEnumerable<BranchDto>>> GetAll(CancellationToken cancellationToken)
     {
         var branches = await _branchService.GetAllAsync(cancellationToken);
@@ -22,6 +24,7 @@ public sealed class BranchesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "OrganizationAdmin")]
     public async Task<ActionResult<BranchDto>> Create([FromBody] CreateBranchRequest request, CancellationToken cancellationToken)
     {
         var branch = await _branchService.CreateAsync(request, cancellationToken);

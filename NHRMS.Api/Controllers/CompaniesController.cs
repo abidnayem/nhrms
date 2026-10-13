@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NHRMS.Application.Features.Companies;
 
@@ -15,6 +16,7 @@ public sealed class CompaniesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "OrganizationRead")]
     public async Task<ActionResult<IEnumerable<CompanyDto>>> GetAll(CancellationToken cancellationToken)
     {
         var companies = await _companyService.GetAllAsync(cancellationToken);
@@ -22,6 +24,7 @@ public sealed class CompaniesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "OrganizationAdmin")]
     public async Task<ActionResult<CompanyDto>> Create([FromBody] CreateCompanyRequest request, CancellationToken cancellationToken)
     {
         var company = await _companyService.CreateAsync(request, cancellationToken);

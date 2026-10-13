@@ -27,6 +27,12 @@
         <option *ngFor="let designation of designations" [value]="designation.id">{{ designation.name }}</option>
       </select>
     </label>
+    <label>Employment type
+      <select name="employmentTypeId" [(ngModel)]="form.employmentTypeId">
+        <option value="">No employment type</option>
+        <option *ngFor="let type of employmentTypes" [value]="type.id">{{ type.name }}</option>
+      </select>
+    </label>
   </div>
   <div class="form-actions">
     <button class="primary-button" type="submit" [disabled]="saving">{{ saving ? 'Saving…' : 'Save employee' }}</button>
@@ -46,19 +52,50 @@
     <h2>Roster</h2>
     <button class="text-button" type="button" (click)="load()">Refresh</button>
   </div>
+  <form class="directory-filters" (ngSubmit)="search()">
+    <label>Search employees<input name="search" [(ngModel)]="searchTerm" placeholder="Name, code, or email" /></label>
+    <label>Company
+      <select name="companyFilter" [(ngModel)]="companyFilter">
+        <option value="">All companies</option>
+        <option *ngFor="let company of companies" [value]="company.id">{{ company.name }}</option>
+      </select>
+    </label>
+    <label>Department
+      <select name="departmentFilter" [(ngModel)]="departmentFilter">
+        <option value="">All departments</option>
+        <option *ngFor="let department of departments" [value]="department.id">{{ department.name }}</option>
+      </select>
+    </label>
+    <label>Status
+      <select name="statusFilter" [(ngModel)]="statusFilter">
+        <option value="">All statuses</option>
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+    </label>
+    <button class="primary-button" type="submit">Apply filters</button>
+  </form>
   <p *ngIf="loading">Loading employees…</p>
   <p *ngIf="!loading && employees.length === 0">No employees yet. Add the first employee to get started.</p>
   <table *ngIf="!loading && employees.length">
     <thead>
-      <tr><th>Employee</th><th>Department</th><th>Role</th><th>Status</th></tr>
+      <tr><th>Employee</th><th>Department</th><th>Role</th><th>Employment type</th><th>Status</th></tr>
     </thead>
     <tbody>
       <tr *ngFor="let employee of employees">
         <td><strong>{{ displayName(employee) }}</strong><br /><small>{{ employee.employeeCode }} · {{ employee.email || 'No email' }}</small></td>
         <td>{{ departmentName(employee.departmentId) }}</td>
         <td>{{ designationName(employee.designationId) }}</td>
+        <td>{{ employmentTypeName(employee.employmentTypeId) }}</td>
         <td><span class="status" [class.status-active]="employee.isActive" [class.status-pending]="!employee.isActive">{{ employee.isActive ? 'Active' : 'Inactive' }}</span></td>
       </tr>
     </tbody>
   </table>
+  <div class="directory-pagination" *ngIf="!loading && totalEmployees > pageSize">
+    <span>Page {{ page }} of {{ pageCount }} · {{ totalEmployees }} employees</span>
+    <div>
+      <button class="text-button" type="button" [disabled]="page <= 1" (click)="changePage(page - 1)">Previous</button>
+      <button class="text-button" type="button" [disabled]="page * pageSize >= totalEmployees" (click)="changePage(page + 1)">Next</button>
+    </div>
+  </div>
 </section>

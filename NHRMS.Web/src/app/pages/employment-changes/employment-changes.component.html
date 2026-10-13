@@ -1,0 +1,53 @@
+<header class="page-header">
+  <div><p class="eyebrow">People operations</p><h1>Employment changes</h1><p class="intro">Request department, designation, or employment type changes with an approval and effective date.</p></div>
+</header>
+<p *ngIf="error" class="error-message">{{ error }}</p>
+
+<section class="change-card">
+  <label>Employee
+    <select name="employee" [(ngModel)]="selectedEmployeeId" (ngModelChange)="selectEmployee()">
+      <option *ngFor="let item of employees" [value]="item.id">{{ item.employeeCode }} · {{ item.firstName }} {{ item.lastName }}</option>
+    </select>
+  </label>
+  <button *ngIf="canManage" class="secondary-button" type="button" (click)="applyDue()" [disabled]="!employee">Apply due approved changes</button>
+</section>
+
+<section class="change-card" *ngIf="canManage && employee">
+  <h2>Request an assignment change</h2>
+  <p class="intro">The current assignment stays in effect until an approver accepts the request and the effective date arrives.</p>
+  <form class="change-form" (ngSubmit)="submit()">
+    <label>Department
+      <select name="department" [(ngModel)]="form.departmentId"><option [ngValue]="''">No department</option><option *ngFor="let item of companyDepartments" [value]="item.id">{{ item.name }}</option></select>
+    </label>
+    <label>Designation
+      <select name="designation" [(ngModel)]="form.designationId"><option [ngValue]="''">No designation</option><option *ngFor="let item of companyDesignations" [value]="item.id">{{ item.name }}</option></select>
+    </label>
+    <label>Employment type
+      <select name="employmentType" [(ngModel)]="form.employmentTypeId"><option [ngValue]="''">No employment type</option><option *ngFor="let item of companyEmploymentTypes" [value]="item.id">{{ item.name }}</option></select>
+    </label>
+    <label>Effective date<input name="effectiveDate" type="date" [(ngModel)]="form.effectiveDate" required /></label>
+    <label class="wide-field">Reason<textarea name="reason" rows="3" maxlength="2000" [(ngModel)]="form.reason" required></textarea></label>
+    <button class="primary-button" type="submit" [disabled]="saving || !form.reason.trim()">Submit request</button>
+  </form>
+</section>
+
+<section class="change-card">
+  <h2>Employment history and approvals</h2>
+  <p *ngIf="loading">Loading employment history…</p>
+  <p *ngIf="!loading && !changes.length" class="empty-state">No employment changes are recorded.</p>
+  <article class="change-row" *ngFor="let item of changes">
+    <div class="change-heading"><strong>{{ item.changeType }} · {{ item.status }}</strong><span>Effective {{ item.effectiveDate | date:'mediumDate' }}</span></div>
+    <p>{{ item.reason }}</p>
+    <div class="change-values">
+      <span>Department: {{ nameOf(item.previousDepartmentId, 'department') }} → {{ nameOf(item.newDepartmentId, 'department') }}</span>
+      <span>Designation: {{ nameOf(item.previousDesignationId, 'designation') }} → {{ nameOf(item.newDesignationId, 'designation') }}</span>
+      <span>Employment type: {{ nameOf(item.previousEmploymentTypeId, 'employmentType') }} → {{ nameOf(item.newEmploymentTypeId, 'employmentType') }}</span>
+    </div>
+    <small>Requested by {{ item.requestedBy }} · {{ item.requestedAtUtc | date:'medium' }}<span *ngIf="item.decidedBy"> · Decided by {{ item.decidedBy }}<span *ngIf="item.decisionNotes">: {{ item.decisionNotes }}</span></span></small>
+    <div class="decision-row" *ngIf="canApprove && item.status === 'Pending'">
+      <input aria-label="Decision notes" name="notes-{{item.id}}" [(ngModel)]="notes" placeholder="Rejection reason required" />
+      <button class="text-button" type="button" (click)="decide(item, true)">Approve</button>
+      <button class="text-button" type="button" (click)="decide(item, false)" [disabled]="!notes.trim()">Reject</button>
+    </div>
+  </article>
+</section>

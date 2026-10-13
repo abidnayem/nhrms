@@ -30,6 +30,7 @@ public class UserAccount : AuditableEntity
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public bool IsBootstrapAccount { get; set; }
 
     public ICollection<UserRole> UserRoles { get; private set; } = new HashSet<UserRole>();
 }

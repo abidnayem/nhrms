@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NHRMS.Application.Features.Attendance;
 
 namespace NHRMS.Api.Controllers;
 
 [ApiController]
+[Authorize(Policy = "AttendanceManage")]
 [Route("api/[controller]")]
 public sealed class AttendanceController : ControllerBase
 {
